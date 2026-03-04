@@ -98,7 +98,9 @@ However, over full paragraphs (20+ segments), the per-pair consistency doesn't g
 
 - **Character-level + pair kerning** (inspired by [uWrap](https://github.com/leeoniya/uWrap)): measure per-character with uppercase pair kerning LUT instead of per-word. Reduces per-step rounding error but loses the per-word shaping accuracy that Chrome's canvas provides. Chrome 99.9% → 99.7%. The error goes in opposite directions by browser — Chrome's word-level sum runs slightly wide, Safari's runs slightly narrow — so no single measurement granularity wins everywhere.
 
-The divergence is small and varies by character adjacency — it's not a constant bias. A per-line full-string measurement during layout would fix it but requires storing text strings (not just widths) and canvas calls during the hot path, which conflicts with the two-phase design. There may be a better approach we haven't found yet.
+- **Hybrid verify**: store segment texts, run word-sum layout, verify borderline lines (within 5px of maxWidth) with a full-string `measureText` call. Problem: our emoji correction makes the word-sum MORE accurate than raw `measureText`. The verification uses uncorrected full-string measurement, which reintroduces emoji inflation errors. Result: Chrome 99.9% → 99.8%. To work, the verifier would need to replicate the emoji correction pipeline on the reconstructed string — defeating the simplicity goal.
+
+The divergence is small and varies by character adjacency — it's not a constant bias. The core difficulty: our corrections (emoji, kinsoku, punctuation merging) make the word-sum *more* accurate than raw canvas for those specific cases. Any verification against raw `measureText` fights the corrections. A correct verifier would need the same correction pipeline applied to full-string measurements, which adds complexity for marginal gain. There may be a better approach we haven't found yet.
 
 ## Prior art
 
