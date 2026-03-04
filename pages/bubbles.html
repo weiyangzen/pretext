@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bubble Shrinkwrap</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #0a0a0a; color: #e0e0e0;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 32px 16px;
+  }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #888; margin-bottom: 24px; }
+  .controls {
+    width: 100%; max-width: 600px;
+    margin-bottom: 24px;
+    display: flex; align-items: center; gap: 16px;
+    font-family: "SF Mono", monospace; font-size: 13px; color: #888;
+  }
+  .controls input[type=range] { flex: 1; }
+  .controls .val { min-width: 48px; text-align: right; }
+  .section-label {
+    font-size: 11px; color: #666; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 8px; text-align: center;
+  }
+  .chat {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 16px;
+    background: #1c1c1e;
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  .msg {
+    padding: 8px 12px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 20px;
+    width: fit-content;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  .msg.sent {
+    background: #0b84fe;
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.recv {
+    background: #2c2c2e;
+    color: #fff;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+</style>
+</head>
+<body>
+<h1>Bubble Shrinkwrap</h1>
+<p class="sub">Canvas text measurement for tight chat bubbles. Hover slider to resize.</p>
+<div class="controls">
+  <span>Chat width:</span>
+  <input type="range" id="slider" min="200" max="600" value="400">
+  <span class="val" id="val">400px</span>
+</div>
+<div class="section-label">Shrinkwrapped (Cheng Lou's text-metrics)</div>
+<div class="chat" id="chat-shrink"></div>
+<div class="section-label">Normal CSS (max-width + fit-content)</div>
+<div class="chat" id="chat-css"></div>
+<script type="module" src="./bubbles.ts"></script>
+</body>
+</html>
