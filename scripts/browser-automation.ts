@@ -57,25 +57,54 @@ function extractReportTextFromUrl(url: string): string {
 }
 
 function createSafariSession(): BrowserSession {
+  const windowIdRaw = runAppleScript([
+    'tell application "Safari" to activate',
+    'tell application "Safari"',
+    'set targetDocument to make new document with properties {URL:"about:blank"}',
+    'return id of front window as string',
+    'end tell',
+  ])
+
+  const windowId = Number.parseInt(windowIdRaw, 10)
+  if (!Number.isFinite(windowId)) {
+    throw new Error(`Failed to create Safari automation window: ${windowIdRaw}`)
+  }
+
   return {
     navigate(url) {
       runAppleScript([
         'tell application "Safari" to activate',
-        'tell application "Safari" to if (count of windows) = 0 then make new document',
-        `tell application "Safari" to set URL of current tab of front window to ${JSON.stringify(url)}`,
+        'tell application "Safari"',
+        `set targetWindow to first window whose id is ${windowId}`,
+        'set index of targetWindow to 1',
+        `set current tab of targetWindow to current tab of targetWindow`,
+        `set URL of current tab of targetWindow to ${JSON.stringify(url)}`,
+        'end tell',
       ])
     },
     readReportText() {
       try {
         const url = runAppleScript([
-          'tell application "Safari" to get URL of current tab of front window',
+          'tell application "Safari"',
+          `return URL of current tab of (first window whose id is ${windowId})`,
+          'end tell',
         ])
         return extractReportTextFromUrl(url)
       } catch {
         return ''
       }
     },
-    close() {},
+    close() {
+      try {
+        runAppleScript([
+          'tell application "Safari"',
+          `close (first window whose id is ${windowId})`,
+          'end tell',
+        ])
+      } catch {
+        // Ignore cleanup failures if the user already closed the window.
+      }
+    },
   }
 }
 
