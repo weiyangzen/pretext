@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A dense workspace note rendered as rich inline text, links, code spans, and atomic chips, with live width changes powered by Pretext.">
+  <title>Rich Note Flow</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    :root {
+      color-scheme: light;
+      --page: #ecf1f3;
+      --page-2: #dfe7ea;
+      --ink: #16212b;
+      --muted: #5f6e7c;
+      --rule: rgba(23, 35, 47, 0.12);
+      --card: rgba(255, 255, 255, 0.9);
+      --card-shadow: 0 24px 70px rgba(24, 40, 53, 0.14);
+      --accent: #155a88;
+      --accent-soft: rgba(21, 90, 136, 0.1);
+      --note-width: 588px;
+      --note-content-width: 516px;
+    }
+    html, body {
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top right, rgba(21, 90, 136, 0.1), transparent 34%),
+        linear-gradient(180deg, var(--page) 0%, var(--page-2) 100%);
+      color: var(--ink);
+    }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      padding: 28px 18px 44px;
+    }
+    .page {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+    .controls {
+      position: sticky;
+      top: 24px;
+      padding: 20px 20px 22px;
+      border: 1px solid var(--rule);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 16px 44px rgba(24, 40, 53, 0.08);
+      backdrop-filter: blur(18px);
+    }
+    .eyebrow {
+      font: 600 11px/1.2 "SF Mono", ui-monospace, Menlo, monospace;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    h1 {
+      margin-top: 10px;
+      font: 700 34px/1.02 Georgia, "Times New Roman", serif;
+      letter-spacing: -0.02em;
+    }
+    .lede {
+      margin-top: 12px;
+      font: 400 15px/1.62 "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--muted);
+    }
+    .control-group {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(23, 35, 47, 0.08);
+    }
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .label-row strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+    input[type="range"] {
+      width: 100%;
+      margin-top: 12px;
+      accent-color: var(--accent);
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .stat {
+      padding: 12px 12px 10px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(23, 35, 47, 0.08);
+    }
+    .stat-label {
+      font: 600 10px/1 "SF Mono", ui-monospace, Menlo, monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .stat-value {
+      margin-top: 8px;
+      font: 600 18px/1.1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    .preview {
+      min-width: 0;
+      display: flex;
+      justify-content: center;
+      padding: 20px 0;
+    }
+    .note-shell {
+      width: var(--note-width);
+      border: 1px solid rgba(23, 35, 47, 0.08);
+      border-radius: 28px;
+      padding: 18px 18px 16px;
+      background: var(--card);
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(14px);
+    }
+    .note-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .note-kicker {
+      font: 600 11px/1 "SF Mono", ui-monospace, Menlo, monospace;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .meta-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .meta-pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(17, 31, 43, 0.05);
+      color: var(--muted);
+      font: 600 11px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    .note-title {
+      margin-top: 14px;
+      font: 600 22px/1.1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+      letter-spacing: -0.03em;
+    }
+    .note-subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font: 400 14px/1.55 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    .note-body-wrap {
+      margin-top: 18px;
+      padding: 18px 18px 16px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(244, 248, 250, 0.96), rgba(238, 244, 247, 0.94));
+      border: 1px solid rgba(23, 35, 47, 0.08);
+    }
+    .note-body {
+      position: relative;
+      width: var(--note-content-width);
+      min-height: 34px;
+    }
+    .line-row {
+      position: absolute;
+      left: 0;
+      display: flex;
+      align-items: baseline;
+      flex-wrap: nowrap;
+      gap: 0;
+      width: max-content;
+    }
+    .frag {
+      display: inline-block;
+      white-space: pre;
+      font: 500 17px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      vertical-align: baseline;
+    }
+    .frag--link {
+      color: var(--accent);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.14em;
+    }
+    .frag--code {
+      padding: 2px 7px 3px;
+      border-radius: 9px;
+      background: rgba(17, 31, 43, 0.08);
+      font: 600 14px/1 "SF Mono", ui-monospace, Menlo, monospace;
+      letter-spacing: 0;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0 10px;
+      min-height: 24px;
+      border-radius: 999px;
+      font: 700 12px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+      white-space: nowrap;
+      border: 1px solid transparent;
+      vertical-align: baseline;
+      transform: translateY(-1px);
+    }
+    .chip--mention { background: rgba(21, 90, 136, 0.12); color: #155a88; border-color: rgba(21, 90, 136, 0.12); }
+    .chip--status { background: rgba(196, 129, 20, 0.12); color: #916207; border-color: rgba(196, 129, 20, 0.14); }
+    .chip--priority { background: rgba(176, 44, 44, 0.1); color: #8e2323; border-color: rgba(176, 44, 44, 0.14); }
+    .chip--time { background: rgba(70, 118, 77, 0.11); color: #355f38; border-color: rgba(70, 118, 77, 0.14); }
+    .chip--count { background: rgba(67, 57, 122, 0.1); color: #483e83; border-color: rgba(67, 57, 122, 0.13); }
+    .note-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      color: var(--muted);
+      font: 500 12px/1.4 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    .footer-inline {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .footer-chip {
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: rgba(17, 31, 43, 0.05);
+    }
+    @media (max-width: 900px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+      .controls {
+        position: static;
+      }
+      .preview {
+        justify-content: flex-start;
+      }
+    }
+    @media (max-width: 640px) {
+      body { padding-inline: 12px; }
+      h1 { font-size: 30px; }
+      .note-shell {
+        border-radius: 24px;
+        padding-inline: 14px;
+      }
+      .note-body-wrap {
+        padding-inline: 14px;
+      }
+      .stats {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="controls">
+      <p class="eyebrow">Pretext</p>
+      <h1>Rich Note Flow</h1>
+      <p class="lede">
+        A single workspace note rendered as text runs, links, code spans, and atomic chips.
+        The width slider changes the inline measure so the note can breathe wider or pack tighter
+        while the chips stay atomic and the text runs keep breaking naturally.
+      </p>
+
+      <div class="control-group">
+        <div class="label-row">
+          <strong>Inline measure</strong>
+          <span id="width-value">516px</span>
+        </div>
+        <input id="width-slider" type="range" min="260" max="760" value="516">
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Lines</div>
+          <div class="stat-value" id="line-count">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Max line</div>
+          <div class="stat-value" id="max-line">0px</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Inline items</div>
+          <div class="stat-value" id="item-count">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Atomic chips</div>
+          <div class="stat-value" id="chip-count">0</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="preview">
+      <article class="note-shell" id="note-shell">
+        <div class="note-head">
+          <div class="note-kicker">Launch note</div>
+          <div class="meta-pills">
+            <span class="meta-pill">ops://workspace-ui</span>
+            <span class="meta-pill">synced 4m ago</span>
+          </div>
+        </div>
+        <h2 class="note-title">Rich inline layout without the flexbox shrug</h2>
+        <p class="note-subtitle">
+          One dense paragraph, real inline atoms, and a live width control that keeps chips atomic
+          while ordinary text runs continue to reflow like normal app copy.
+        </p>
+        <div class="note-body-wrap">
+          <div class="note-body" id="note-body"></div>
+        </div>
+        <div class="note-footer">
+          <div class="footer-inline">
+            <span class="footer-chip" id="footer-layout">0 lines</span>
+            <span class="footer-chip" id="footer-measure">0px measure</span>
+          </div>
+          <div>text runs stay breakable · chips stay atomic</div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script type="module" src="./rich-note.ts"></script>
+</body>
+</html>
